@@ -1,58 +1,48 @@
 import streamlit as st
 import pickle
-import requests
-from bs4 import BeautifulSoup
-import os
 
-# Load the trained model safely
-model_path = "text_model.pkl"
-
-if os.path.exists(model_path):
-    with open(model_path, "rb") as f:
-        model = pickle.load(f)
-else:
-    st.error("Model file not found. Please upload text_model.pkl to the repository.")
-    st.stop()
-
-# Title
 st.title("AI Fake Job Detection System")
 
-# URL Input (Top)
-st.subheader("Check Job URL")
-url = st.text_input("Enter Job URL")
+st.write("Enter Job Description and URL to check whether the job posting is Fake or Real.")
 
-# Description Input (Bottom)
-st.subheader("Check Job Description")
-description = st.text_area("Enter Job Description")
+# Load models
+text_model = pickle.load(open("text_model.pkl", "rb"))
+text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
+
+url_model = pickle.load(open("url_model.pkl", "rb"))
+url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
+
+# Inputs
+job_desc = st.text_area("Job Description")
+job_url = st.text_input("Job URL")
 
 # Single Button
-if st.button("Check Job"):
+if st.button("Check Job Authenticity"):
 
-    text_to_check = ""
-
-    # Extract text from URL
-    if url:
-        try:
-            response = requests.get(url)
-            soup = BeautifulSoup(response.text, "html.parser")
-            text_to_check += soup.get_text()
-        except:
-            st.warning("Could not read the URL")
-
-    # Add description text
-    if description:
-        text_to_check += " " + description
-
-    if text_to_check.strip() == "":
-        st.warning("Please enter a URL or job description")
+    if job_desc.strip() == "" or job_url.strip() == "":
+        st.warning("Please enter both Job Description and Job URL.")
+    
     else:
-        prediction = model.predict([text_to_check])
+        # Description prediction
+        desc_data = text_vectorizer.transform([job_desc])
+        desc_prediction = text_model.predict(desc_data)
 
-        if prediction[0] == 1:
-            st.error("⚠️ This Job Posting is FAKE")
+        # URL prediction
+        url_data = url_vectorizer.transform([job_url])
+        url_prediction = url_model.predict(url_data)
+
+        st.subheader("Results")
+
+        if desc_prediction[0] == 1:
+            st.error("⚠ Job Description looks Fake")
         else:
-            st.success("✅ This Job Posting is REAL")
+            st.success("✅ Job Description looks Real")
+
+        if url_prediction[0] == 1:
+            st.error("⚠ Job URL looks Suspicious")
+        else:
+            st.success("✅ Job URL looks Safe")
 
 # Footer
 st.markdown("---")
-st.markdown("Developed with ❤️ by Majnu and Team")
+st.markdown("<center>Developed with ❤️ by Majnu and Team</center>", unsafe_allow_html=True)
