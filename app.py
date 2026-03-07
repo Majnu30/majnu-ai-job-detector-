@@ -48,4 +48,6 @@ if st.button("Check URL"):
         if prediction[0] == 1:
             st.error("⚠ Suspicious / Fake Job URL")
         else:
-            st.success("✅ Safe Job URL")
+            st.success("✅ Safe Job URL") 
+            st.markdown("---")
+st.markdown("### Developed by Majnu and Team")
