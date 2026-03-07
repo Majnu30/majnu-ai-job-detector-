@@ -1,29 +1,30 @@
 import streamlit as st
 import pickle
+import os
 
-# Load saved model and vectorizer
-text_model = pickle.load(open("text_model.pkl", "rb"))
-vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
-
-# Page title
 st.title("AI Fake Job Detection System")
 
-st.write("Enter a job description to check whether it is Real or Fake.")
+model_path = "text_model.pkl"
+vectorizer_path = "text_vectorizer.pkl"
 
-# Text input
-job_desc = st.text_area("Job Description")
+if not os.path.exists(model_path) or not os.path.exists(vectorizer_path):
+    st.error("Model files not found. Please upload text_model.pkl and text_vectorizer.pkl.")
+else:
+    text_model = pickle.load(open(model_path, "rb"))
+    vectorizer = pickle.load(open(vectorizer_path, "rb"))
 
-# Button
-if st.button("Check Job"):
+    st.write("Enter a job description to detect if it is Fake or Real.")
 
-    if job_desc.strip() == "":
-        st.warning("Please enter a job description.")
-    
-    else:
-        data = vectorizer.transform([job_desc])
-        prediction = text_model.predict(data)
+    job_desc = st.text_area("Job Description")
 
-        if prediction[0] == 1:
-            st.error("⚠ This looks like a FAKE job posting.")
+    if st.button("Check Job"):
+        if job_desc.strip() == "":
+            st.warning("Please enter a job description.")
         else:
-            st.success("✅ This job posting appears to be REAL.")
+            data = vectorizer.transform([job_desc])
+            prediction = text_model.predict(data)
+
+            if prediction[0] == 1:
+                st.error("⚠ Fake Job Posting")
+            else:
+                st.success("✅ Real Job Posting")
