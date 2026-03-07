@@ -53,7 +53,7 @@ text_model, text_vectorizer, url_model, url_vectorizer = load_models()
 
 # --- Main App Interface ---
 st.title("🛡️ AI Fake Job Detection System")
-st.write("Enter the job details below to analyze the risk of fraud using our dual-engine AI.")
+st.write("Enter the job details below to analyze the risk of fraud using AI.")
 
 # --- Layout: Inputs ---
 col_in1, col_in2 = st.columns([2, 1])
