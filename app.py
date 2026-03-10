@@ -1,61 +1,54 @@
 import streamlit as st
 import pickle
 
-# 1. Page Configuration
-st.set_page_config(
-    page_title="AI Fake Job Detector",
-    page_icon="🛡️",
-    layout="centered"
-)
+# Load models
+text_model = pickle.load(open("text_model.pkl", "rb"))
+text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 
-# 2. Custom CSS for Dark Mode Design
-st.markdown("""
-    <style>
-    /* Main Background */
-    .stApp {
-        background-color: #0E1117;
-        color: #FFFFFF;
-    }
-    
-    /* Sidebar Background */
-    section[data-testid="stSidebar"] {
-        background-color: #161B22 !important;
-    }
+url_model = pickle.load(open("url_model.pkl", "rb"))
+url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
-    /* Input Fields */
-    .stTextArea textarea, .stTextInput input {
-        background-color: #21262D !important;
-        color: white !important;
-        border: 1px solid #30363D !important;
-        border-radius: 8px !important;
-    }
+# Title
+st.title("AI Fake Job Detection System")
 
-    /* Titles and Text */
-    h1, h2, h3, p, span, label {
-        color: #F0F6FC !important;
-        font-family: 'Inter', sans-serif;
-    }
+st.write("Enter the Job URL and Job Description to verify whether the job is Fake or Real.")
 
-    /* Button Styling (Neon Blue) */
-    .stButton>button {
-        background-color: #238636;
-        color: white;
-        border-radius: 8px;
-        border: none;
-        height: 3.5em;
-        width: 100%;
-        font-weight: bold;
-        font-size: 1.1em;
-        transition: 0.3s;
-        box-shadow: 0px 4px 15px rgba(35, 134, 54, 0.3);
-    }
-    
-    .stButton>button:hover {
-        background-color: #2ea043;
-        color: white;
-        transform: translateY(-2px);
-        box-shadow: 0px 6px 20px rgba(35, 134, 54, 0.5);
-    }
+# URL Input (Top)
+st.subheader("Job URL")
+job_url = st.text_input("Enter Job URL")
 
-    /* Result Boxes */
-    div
+# Description Input (Bottom)
+st.subheader("Job Description")
+job_desc = st.text_area("Enter Job Description")
+
+# Single Button
+if st.button("Check Job Authenticity"):
+
+    if job_url.strip() == "" and job_desc.strip() == "":
+        st.warning("Please enter at least a URL or Job Description.")
+
+    else:
+
+        # URL Prediction
+        if job_url.strip() != "":
+            url_data = url_vectorizer.transform([job_url])
+            url_prediction = url_model.predict(url_data)
+
+            if url_prediction[0] == 1:
+                st.error("⚠ Suspicious / Fake Job URL")
+            else:
+                st.success("✅ Job URL looks Safe")
+
+        # Description Prediction
+        if job_desc.strip() != "":
+            desc_data = text_vectorizer.transform([job_desc])
+            desc_prediction = text_model.predict(desc_data)
+
+            if desc_prediction[0] == 1:
+                st.error("⚠ Fake Job Description")
+            else:
+                st.success("✅ Job Description looks Real")
+
+# Footer
+st.markdown("---")
+st.markdown("<center>Developed with ❤️ by Majnu and Team</center>", unsafe_allow_html=True)
