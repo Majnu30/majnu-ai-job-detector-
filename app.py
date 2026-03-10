@@ -1,125 +1,105 @@
 import streamlit as st
 import pickle
+import pandas as pd
 
-# 1. Page Configuration (Adds Browser Tab Icon & Title)
-st.set_page_config(
-    page_title="AI Fake Job Detector",
-    page_icon="🔍",
-    layout="centered"
-)
+# 1. Page Configuration
+st.set_page_config(page_title="Job Guardian AI", page_icon="🛡️", layout="wide")
 
-# 2. Custom CSS for Colors and Designs
+# 2. Advanced CSS for Gradient Headers and Gauges
 st.markdown("""
     <style>
-    /* Change background color */
-    .stApp {
-        background-color: #f4f7f9;
+    .main { background-color: #f0f2f6; }
+    .stProgress > div > div > div > div { background-image: linear-gradient(to right, #4caf50, #f44336); }
+    .report-card {
+        background-color: white;
+        padding: 25px;
+        border-radius: 15px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        border-top: 5px solid #6c63ff;
     }
-    
-    /* Title styling */
-    h1 {
-        color: #1E3A8A;
-        font-family: 'Helvetica Neue', sans-serif;
-        font-weight: 800;
-        text-align: center;
-    }
-
-    /* Button styling */
-    .stButton>button {
-        background-color: #2563EB;
-        color: white;
-        border-radius: 10px;
-        border: none;
-        height: 3em;
-        width: 100%;
-        font-weight: bold;
-        transition: 0.3s;
-    }
-    
-    .stButton>button:hover {
-        background-color: #1E40AF;
-        border: none;
-        color: white;
-        transform: scale(1.02);
-    }
-
-    /* Input box styling */
-    .stTextArea textarea, .stTextInput input {
-        border-radius: 10px !important;
-        border: 1px solid #CBD5E1 !important;
-    }
-    
-    /* Footer styling */
-    .footer {
-        color: #64748B;
-        text-align: center;
-        padding: 20px;
-        font-size: 14px;
-    }
+    .footer { text-align: center; padding: 20px; color: #888; font-size: 0.9em; }
     </style>
     """, unsafe_allow_html=True)
 
-# 3. Logo and Header
-# You can replace the URL with your own local logo file path
-st.markdown("<center><img src='https://cdn-icons-png.flaticon.com/512/1063/1063376.png' width='80'></center>", unsafe_allow_html=True)
-st.title("AI Fake Job Detection System")
-
-st.markdown("<p style='text-align: center; color: #475569;'>Enter Job Description and URL to check whether the job posting is Fake or Real.</p>", unsafe_allow_html=True)
-
-# --- Sidebar Logo/Design ---
-with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/2706/2706950.png", width=100)
-    st.title("Guardian AI")
-    st.info("This system uses Machine Learning to protect job seekers from phishing and fraudulent listings.")
-
 # --- Load models ---
-# (Added st.cache_resource to make it faster)
 @st.cache_resource
-def load_data():
+def load_models():
+    # Note: Ensure your models were trained with probability=True if using SVM
     t_model = pickle.load(open("text_model.pkl", "rb"))
     t_vec = pickle.load(open("text_vectorizer.pkl", "rb"))
     u_model = pickle.load(open("url_model.pkl", "rb"))
     u_vec = pickle.load(open("url_vectorizer.pkl", "rb"))
     return t_model, t_vec, u_model, u_vec
 
-text_model, text_vectorizer, url_model, url_vectorizer = load_data()
+text_model, text_vectorizer, url_model, url_vectorizer = load_models()
 
-# --- Inputs ---
-job_desc = st.text_area("📄 Job Description", placeholder="Paste the job requirements here...")
-job_url = st.text_input("🔗 Job URL", placeholder="https://example.com/careers/job-id")
+# --- UI Header ---
+st.title("🛡️ Job Guardian: AI Fraud Detection")
+st.write("Analyze job postings with deep-learning linguistics and URL heuristics.")
 
-# --- Single Button ---
-if st.button("Check Job Authenticity"):
+# --- Layout ---
+col1, col2 = st.columns([2, 1])
 
-    if job_desc.strip() == "" or job_url.strip() == "":
-        st.warning("⚠️ Please enter both Job Description and Job URL.")
+with col1:
+    st.markdown("### 📝 Job Details")
+    job_desc = st.text_area("Job Description", height=250, placeholder="Paste the text here...")
+    job_url = st.text_input("Job URL", placeholder="https://linkedin.com/jobs/...")
+
+with col2:
+    st.markdown("### 🛠️ Analysis Control")
+    st.write("Click analyze to run the dual-engine scan.")
+    run_button = st.button("🚀 Run Full Diagnostic")
     
-    else:
-        # Description prediction
-        desc_data = text_vectorizer.transform([job_desc])
-        desc_prediction = text_model.predict(desc_data)
+    if run_button:
+        if not job_desc or not job_url:
+            st.error("Missing input fields!")
+        else:
+            # --- Processing ---
+            desc_vec = text_vectorizer.transform([job_desc])
+            url_vec = url_vectorizer.transform([job_url])
+            
+            # Get Probabilities (Index 1 is usually 'Fake')
+            desc_prob = text_model.predict_proba(desc_vec)[0][1] * 100
+            url_prob = url_model.predict_proba(url_vec)[0][1] * 100
+            
+            st.session_state['desc_score'] = desc_prob
+            st.session_state['url_score'] = url_prob
+            st.session_state['analyzed'] = True
 
-        # URL prediction
-        url_data = url_vectorizer.transform([job_url])
-        url_prediction = url_model.predict(url_data)
-
-        st.markdown("### 📊 Results")
+# --- Results Section ---
+if st.session_state.get('analyzed'):
+    st.divider()
+    st.subheader("📊 Risk Assessment Report")
+    
+    res_col1, res_col2 = st.columns(2)
+    
+    with res_col1:
+        score = st.session_state['desc_score']
+        st.markdown(f"<div class='report-card'>", unsafe_allow_html=True)
+        st.write("**Description Risk Score**")
+        st.metric(label="Risk Level", value=f"{score:.1f}%", delta="- Safe" if score < 50 else "+ Risk", delta_color="inverse")
+        st.progress(score / 100)
         
-        col1, col2 = st.columns(2)
+        if score > 70:
+            st.warning("🚨 High probability of linguistic manipulation (scam patterns detected).")
+        elif score > 40:
+            st.info("🟡 Moderate risk. Proceed with caution and verify company email.")
+        else:
+            st.success("🟢 Low risk. The text appears naturally written and professional.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
-        with col1:
-            if desc_prediction[0] == 1:
-                st.error("🚨 Job Description looks **Fake**")
-            else:
-                st.success("✅ Job Description looks **Real**")
-
-        with col2:
-            if url_prediction[0] == 1:
-                st.error("🚨 Job URL looks **Suspicious**")
-            else:
-                st.success("✅ Job URL looks **Safe**")
+    with res_col2:
+        u_score = st.session_state['url_score']
+        st.markdown(f"<div class='report-card'>", unsafe_allow_html=True)
+        st.write("**URL Trust Score**")
+        st.metric(label="Suspicion Level", value=f"{u_score:.1f}%", delta="- Safe" if u_score < 50 else "+ Risk", delta_color="inverse")
+        st.progress(u_score / 100)
+        
+        if u_score > 70:
+            st.error("🛑 Highly Suspicious URL structure or domain.")
+        else:
+            st.success("✅ The domain structure follows standard trusted patterns.")
+        st.markdown("</div>", unsafe_allow_html=True)
 
 # --- Footer ---
-st.markdown("<br><br><br>", unsafe_allow_html=True)
-st.markdown("---")
-st.markdown("<div class='footer'>Developed  by <b>#Majnu and Team</b></div>", unsafe_allow_html=True)
+st.markdown("<div class='footer'>Developed with ❤️ by Majnu and Team | © 2026 Safeguard AI</div>", unsafe_allow_html=True)
