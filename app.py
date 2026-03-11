@@ -8,47 +8,58 @@ text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 url_model = pickle.load(open("url_model.pkl", "rb"))
 url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
+# Page config
+st.set_page_config(page_title="AI Fake Job Detector", page_icon="🤖", layout="centered")
+
 # Title
-st.title("AI Fake Job Detection System")
+st.markdown("<h1 style='text-align:center;'>🤖 AI Fake Job Detection System</h1>", unsafe_allow_html=True)
+st.markdown("<p style='text-align:center;'>Detect fake job postings using Machine Learning</p>", unsafe_allow_html=True)
 
-st.write("Enter the Job URL and Job Description to verify whether the job is Fake or Real.")
+st.markdown("---")
 
-# URL Input (Top)
-st.subheader("Job URL")
-job_url = st.text_input("Enter Job URL")
+# URL Input
+st.subheader("🔗 Job URL")
+job_url = st.text_input("Paste the job website link")
 
-# Description Input (Bottom)
-st.subheader("Job Description")
-job_desc = st.text_area("Enter Job Description")
+# Description Input
+st.subheader("📝 Job Description")
+job_desc = st.text_area("Paste the job description here")
+
+st.markdown("---")
 
 # Single Button
-if st.button("Check Job Authenticity"):
+if st.button("🚀 Check Job Authenticity"):
 
     if job_url.strip() == "" and job_desc.strip() == "":
-        st.warning("Please enter at least a URL or Job Description.")
-
+        st.warning("Please enter a Job URL or Job Description.")
     else:
 
-        # URL Prediction
+        st.subheader("🔍 Analysis Result")
+
+        # URL prediction
         if job_url.strip() != "":
             url_data = url_vectorizer.transform([job_url])
-            url_prediction = url_model.predict(url_data)
+            url_pred = url_model.predict(url_data)
 
-            if url_prediction[0] == 1:
+            if url_pred[0] == 1:
                 st.error("⚠ Suspicious / Fake Job URL")
             else:
                 st.success("✅ Job URL looks Safe")
 
-        # Description Prediction
+        # Description prediction
         if job_desc.strip() != "":
             desc_data = text_vectorizer.transform([job_desc])
-            desc_prediction = text_model.predict(desc_data)
+            desc_pred = text_model.predict(desc_data)
 
-            if desc_prediction[0] == 1:
+            if desc_pred[0] == 1:
                 st.error("⚠ Fake Job Description")
             else:
                 st.success("✅ Job Description looks Real")
 
-# Footer
 st.markdown("---")
-st.markdown("<center>Developed  by BATCH 12</center>", unsafe_allow_html=True)
+
+# Footer
+st.markdown(
+    "<p style='text-align:center;'>Developed by Batch 12</b></p>",
+    unsafe_allow_html=True
+)
