@@ -51,4 +51,4 @@ if st.button("Check Job Authenticity"):
 
 # Footer
 st.markdown("---")
-st.markdown("<center>Developed  by Majnu and Team</center>", unsafe_allow_html=True)
+st.markdown("<center>Developed  by BATCH 12</center>", unsafe_allow_html=True)
