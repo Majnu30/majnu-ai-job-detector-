@@ -84,6 +84,6 @@ st.markdown("---")
 
 # Footer
 st.markdown(
-    "<p style='text-align:center;'>Developed by Batch 12</b></p>",
+    "<p style='text-align:center;'>Developed by Batch 11</b></p>",
     unsafe_allow_html=True
 )
