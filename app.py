@@ -64,10 +64,10 @@ if st.button("🚀 Check Job Authenticity"):
                 url_data = url_vectorizer.transform([job_url])
                 url_pred = url_model.predict(url_data)
 
-        if url_pred[0] == 1:
-            st.error("⚠ Suspicious / Fake Job URL")
-        else:
-            st.success("✅ Job URL looks Safe")
+                if url_pred[0] == 1:
+                    st.error("⚠ Suspicious / Fake Job URL")
+                else:
+                    st.success("✅ Job URL looks Safe")
             
 
         # Description prediction
