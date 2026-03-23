@@ -58,7 +58,7 @@ if st.button("🚀 Check Job Authenticity"):
         # URL prediction
         if job_url.strip() != "":
             if is_trusted(job_url):
-        st.success("✅ Legitimate Job Website (Trusted Domain)")
+                st.success("✅ Legitimate Job Website (Trusted Domain)")
     
             else:
                 url_data = url_vectorizer.transform([job_url])
