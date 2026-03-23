@@ -1,5 +1,24 @@
 import streamlit as st
 import pickle
+from urllib.parse import urlparse
+
+trusted_domains = [
+    "tcs.com",
+    "infosys.com",
+    "wipro.com",
+    "amazon.jobs",
+    "google.com",
+    "linkedin.com",
+    "naukri.com",
+    "internshala.com"
+]
+
+def is_trusted(url):
+    domain = urlparse(url).netloc.lower()
+    for trusted in trusted_domains:
+        if trusted in domain:
+            return True
+    return False
 
 # Load models
 text_model = pickle.load(open("text_model.pkl", "rb"))
@@ -38,13 +57,18 @@ if st.button("🚀 Check Job Authenticity"):
 
         # URL prediction
         if job_url.strip() != "":
-            url_data = url_vectorizer.transform([job_url])
-            url_pred = url_model.predict(url_data)
-
-            if url_pred[0] == 1:
-                st.error("⚠ Suspicious / Fake Job URL")
+            if is_trusted(job_url):
+        st.success("✅ Legitimate Job Website (Trusted Domain)")
+    
             else:
-                st.success("✅ Job URL looks Safe")
+                url_data = url_vectorizer.transform([job_url])
+                url_pred = url_model.predict(url_data)
+
+        if url_pred[0] == 1:
+            st.error("⚠ Suspicious / Fake Job URL")
+        else:
+            st.success("✅ Job URL looks Safe")
+            
 
         # Description prediction
         if job_desc.strip() != "":
