@@ -1,8 +1,8 @@
 import streamlit as st
 import pickle
 import time
-import re
-import pandas as pd
+import requests
+from streamlit_lottie import st_lottie
 
 # ===============================
 # LOAD MODELS
@@ -13,62 +13,77 @@ text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
 # ===============================
-# SESSION
+# LOAD LOTTIE ANIMATION
 # ===============================
-if "history" not in st.session_state:
-    st.session_state.history = []
+def load_lottie(url):
+    r = requests.get(url)
+    return r.json()
+
+lottie_ai = load_lottie("https://assets2.lottiefiles.com/packages/lf20_jcikwtux.json")
 
 # ===============================
 # PAGE CONFIG
 # ===============================
-st.set_page_config(page_title="God Level AI Job Detector", layout="wide")
+st.set_page_config(page_title="Majnu AI Legend", layout="wide")
+
+# ===============================
+# PREMIUM CSS (GLASS UI)
+# ===============================
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: white;
+}
+.glass {
+    background: rgba(255,255,255,0.1);
+    padding: 20px;
+    border-radius: 15px;
+    backdrop-filter: blur(10px);
+}
+.result {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 24px;
+    font-weight: bold;
+}
+</style>
+""", unsafe_allow_html=True)
 
 # ===============================
 # HEADER
 # ===============================
-st.title("👑 GOD LEVEL AI JOB DETECTOR")
-st.caption("Advanced AI System with Explainability & Smart Risk Score")
-
-# ===============================
-# INPUT SECTION
-# ===============================
-col1, col2 = st.columns(2)
+col1, col2 = st.columns([2,1])
 
 with col1:
-    url = st.text_input("🔗 Enter Job URL")
+    st.title("👑 Majnu AI Legend System")
+    st.caption("Next-gen Fake Job Detection with AI Intelligence")
 
 with col2:
-    file = st.file_uploader("📄 Upload Job PDF", type=["txt", "pdf"])
+    st_lottie(lottie_ai, height=150)
 
+# ===============================
+# INPUT UI
+# ===============================
+st.markdown('<div class="glass">', unsafe_allow_html=True)
+
+url = st.text_input("🔗 Enter Job URL")
 desc = st.text_area("📝 Enter Job Description")
 
-# ===============================
-# KEYWORD LIST (AI EXPLANATION)
-# ===============================
-suspicious_words = [
-    "urgent hiring", "work from home", "no experience",
-    "quick money", "easy job", "free registration"
-]
-
-def highlight_keywords(text):
-    found = []
-    for word in suspicious_words:
-        if word in text.lower():
-            found.append(word)
-    return found
+st.markdown('</div>', unsafe_allow_html=True)
 
 # ===============================
-# ANALYZE BUTTON
+# BUTTON
 # ===============================
 if st.button("🚀 Analyze Job"):
 
-    with st.spinner("🤖 AI is thinking..."):
+    with st.spinner("🤖 AI is analyzing..."):
         time.sleep(2)
 
         results = []
         probs = []
 
-        # URL MODEL
         if url:
             vec = url_vectorizer.transform([url])
             pred = url_model.predict(vec)[0]
@@ -76,7 +91,6 @@ if st.button("🚀 Analyze Job"):
             results.append(pred)
             probs.append(prob)
 
-        # TEXT MODEL
         if desc:
             vec = text_vectorizer.transform([desc])
             pred = text_model.predict(vec)[0]
@@ -84,78 +98,38 @@ if st.button("🚀 Analyze Job"):
             results.append(pred)
             probs.append(prob)
 
-        if results:
-            final = max(results)
-            confidence = round(max(probs)*100, 2)
-        else:
-            st.warning("Please provide input")
+        if not results:
+            st.warning("Please enter input")
             st.stop()
 
-        # ===============================
-        # SMART RISK SCORE
-        # ===============================
-        risk_score = confidence if final == 1 else 100 - confidence
+        final = max(results)
+        confidence = round(max(probs)*100, 2)
 
-        # ===============================
-        # RESULT DISPLAY
-        # ===============================
-        if final == 1:
-            st.error(f"🚨 FAKE JOB DETECTED")
-        else:
-            st.success(f"✅ REAL JOB")
-
-        st.metric("Confidence", f"{confidence}%")
-        st.metric("Risk Score", f"{risk_score}%")
-
-        # ===============================
-        # KEYWORD HIGHLIGHT
-        # ===============================
-        keywords = highlight_keywords(desc)
-
-        if keywords:
-            st.warning(f"⚠️ Suspicious Keywords Found: {', '.join(keywords)}")
-        else:
-            st.info("No suspicious keywords detected")
-
-        # ===============================
-        # AI EXPLANATION
-        # ===============================
-        if final == 1:
-            explanation = "This job looks suspicious due to risky patterns and keywords."
-        else:
-            explanation = "This job appears safe based on trained data patterns."
-
-        st.info(f"🧠 AI Explanation: {explanation}")
-
-        # ===============================
-        # SAVE HISTORY
-        # ===============================
-        st.session_state.history.append({
-            "URL": url,
-            "Result": "Fake" if final else "Real",
-            "Confidence": confidence
-        })
-
-# ===============================
-# HISTORY TABLE
-# ===============================
-st.subheader("📊 History")
-
-if st.session_state.history:
-    df = pd.DataFrame(st.session_state.history)
-    st.dataframe(df)
-else:
-    st.info("No history yet")
-
-# ===============================
-# AI CHAT ASSISTANT
-# ===============================
-st.subheader("🤖 Ask AI")
-
-question = st.text_input("Ask something about job scams")
-
-if question:
-    if "fake job" in question.lower():
-        st.write("Fake jobs often ask for money, personal info, or unrealistic offers.")
+    # ===============================
+    # ANIMATED RESULT
+    # ===============================
+    if final == 1:
+        st.markdown(f'<div class="result" style="background:#ff4b4b;">🚨 FAKE JOB<br>{confidence}% Confidence</div>', unsafe_allow_html=True)
     else:
-        st.write("AI Assistant: Please ask about job detection.")
+        st.markdown(f'<div class="result" style="background:#00c853;">✅ REAL JOB<br>{confidence}% Confidence</div>', unsafe_allow_html=True)
+
+    # ===============================
+    # PROGRESS BAR
+    # ===============================
+    st.progress(int(confidence))
+
+    # ===============================
+    # AI EXPLANATION
+    # ===============================
+    if final == 1:
+        st.info("⚠️ AI detected suspicious patterns like unrealistic offers or phishing signals.")
+    else:
+        st.info("✔️ AI found no major risk patterns.")
+
+# ===============================
+# FOOTER
+# ===============================
+st.markdown("""
+<hr>
+<center>🚀 Developed by Majnu & Team | AI Powered System</center>
+""", unsafe_allow_html=True)
