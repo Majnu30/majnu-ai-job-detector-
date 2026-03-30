@@ -77,7 +77,7 @@ st.markdown("""
 # ===============================
 # LOGO + HEADER
 # ===============================
-st.markdown('<div class="title">🤖 Majnu AI Job Detector</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">🤖  AI Job Detector</div>', unsafe_allow_html=True)
 st.markdown('<div class="subtitle">Smart AI to Detect Fake Job Posts Instantly</div>', unsafe_allow_html=True)
 
 # ===============================
