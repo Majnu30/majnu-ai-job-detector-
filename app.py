@@ -1,6 +1,13 @@
 import streamlit as st
 import pickle
 import time
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# ===============================
+# PAGE CONFIG
+# ===============================
+st.set_page_config(page_title="Majnu AI Job Detector", layout="wide")
 
 # ===============================
 # LOAD MODELS
@@ -11,137 +18,177 @@ text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
 # ===============================
-# PAGE CONFIG
+# SESSION STATE
 # ===============================
-st.set_page_config(
-    page_title=" AI Job Detector",
-    page_icon="🤖",
-    layout="centered"
-)
+if "logged_in" not in st.session_state:
+    st.session_state.logged_in = False
 
-# ===============================
-# CUSTOM CSS (GRADIENT + MOBILE)
-# ===============================
-st.markdown("""
-<style>
-
-.stApp {
-    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
-    color: white;
-}
-
-/* Title */
-.title {
-    text-align: center;
-    font-size: 42px;
-    font-weight: bold;
-    color: #00e5ff;
-}
-
-/* Subtitle */
-.subtitle {
-    text-align: center;
-    font-size: 18px;
-    color: #d1d1d1;
-    margin-bottom: 20px;
-}
-
-/* Card UI */
-.card {
-    background: rgba(255,255,255,0.05);
-    padding: 20px;
-    border-radius: 15px;
-    margin-bottom: 20px;
-}
-
-/* Result box */
-.result {
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-}
-
-/* Footer */
-.footer {
-    text-align: center;
-    margin-top: 40px;
-    color: #aaaaaa;
-    font-size: 14px;
-}
-
-</style>
-""", unsafe_allow_html=True)
+if "history" not in st.session_state:
+    st.session_state.history = []
 
 # ===============================
-# LOGO + HEADER
+# LOGIN PAGE
 # ===============================
-st.markdown('<div class="title"> AI Job Detector</div>', unsafe_allow_html=True)
-st.markdown('<div class="subtitle">Smart AI to Detect Fake Job Posts Instantly</div>', unsafe_allow_html=True)
+if not st.session_state.logged_in:
+    st.title("🔐 Login - Majnu AI")
 
-# ===============================
-# INPUT SECTION
-# ===============================
-st.markdown('<div class="card">', unsafe_allow_html=True)
+    username = st.text_input("Username")
+    password = st.text_input("Password", type="password")
 
-url_input = st.text_input("🔗 Enter Job URL")
-desc_input = st.text_area("📝 Enter Job Description")
-
-st.markdown('</div>', unsafe_allow_html=True)
-
-# ===============================
-# BUTTON
-# ===============================
-if st.button("🚀 Analyze Job", use_container_width=True):
-
-    if url_input == "" and desc_input == "":
-        st.warning("⚠️ Please enter URL or Description")
-
-    else:
-        with st.spinner("🔍 Analyzing... Please wait"):
-            time.sleep(2)  # Loading animation
-
-            results = []
-            confidences = []
-
-            # URL Prediction
-            if url_input:
-                url_vec = url_vectorizer.transform([url_input])
-                url_pred = url_model.predict(url_vec)[0]
-                url_prob = url_model.predict_proba(url_vec)[0].max()
-                results.append(url_pred)
-                confidences.append(url_prob)
-
-            # TEXT Prediction
-            if desc_input:
-                text_vec = text_vectorizer.transform([desc_input])
-                text_pred = text_model.predict(text_vec)[0]
-                text_prob = text_model.predict_proba(text_vec)[0].max()
-                results.append(text_pred)
-                confidences.append(text_prob)
-
-            final_result = max(results)
-            confidence = round(max(confidences) * 100, 2)
-
-        # ===============================
-        # OUTPUT
-        # ===============================
-        if final_result == 1:
-            st.markdown(
-                f'<div class="result" style="background:#ff4b4b;">🚨 FAKE JOB DETECTED<br>Confidence: {confidence}%</div>',
-                unsafe_allow_html=True
-            )
+    if st.button("Login"):
+        if username == "majnu" and password == "1234":
+            st.session_state.logged_in = True
+            st.success("Login Successful")
+            st.rerun()
         else:
-            st.markdown(
-                f'<div class="result" style="background:#00c853;">✅ REAL JOB<br>Confidence: {confidence}%</div>',
-                unsafe_allow_html=True
-            )
+            st.error("Invalid Credentials")
 
 # ===============================
-# FOOTER
+# MAIN APP
 # ===============================
-st.markdown(
-    '<div class="footer">Developed by batch 11 Team</div>',
-    unsafe_allow_html=True
-)
+else:
+
+    # SIDEBAR
+    st.sidebar.title("🤖 Majnu AI")
+    menu = st.sidebar.radio("Menu", ["Dashboard", "Analyzer", "History", "Analytics", "Logout"])
+
+    # ===============================
+    # DASHBOARD
+    # ===============================
+    if menu == "Dashboard":
+        st.title("📊 Dashboard")
+
+        col1, col2, col3 = st.columns(3)
+
+        col1.metric("Total Checks", len(st.session_state.history))
+        col2.metric("Fake Detected", sum(1 for x in st.session_state.history if x[2] == 1))
+        col3.metric("Real Jobs", sum(1 for x in st.session_state.history if x[2] == 0))
+
+    # ===============================
+    # ANALYZER
+    # ===============================
+    elif menu == "Analyzer":
+
+        st.title("🚀 AI Job Analyzer")
+
+        tab1, tab2, tab3 = st.tabs(["🔗 URL", "📝 Description", "⚡ Combined"])
+
+        # URL
+        with tab1:
+            url = st.text_input("Enter URL")
+
+            if st.button("Check URL"):
+                with st.spinner("Analyzing..."):
+                    time.sleep(1.5)
+
+                    vec = url_vectorizer.transform([url])
+                    pred = url_model.predict(vec)[0]
+                    prob = url_model.predict_proba(vec)[0].max()
+
+                    if pred == 1:
+                        st.error(f"🚨 Fake URL ({round(prob*100,2)}%)")
+                    else:
+                        st.success(f"✅ Safe URL ({round(prob*100,2)}%)")
+
+                    st.progress(int(prob*100))
+                    st.info("🔍 Reason: Suspicious patterns detected")
+
+                    st.session_state.history.append(("URL", url, pred))
+
+        # TEXT
+        with tab2:
+            desc = st.text_area("Enter Description")
+
+            if st.button("Check Description"):
+                with st.spinner("Analyzing..."):
+                    time.sleep(1.5)
+
+                    vec = text_vectorizer.transform([desc])
+                    pred = text_model.predict(vec)[0]
+                    prob = text_model.predict_proba(vec)[0].max()
+
+                    if pred == 1:
+                        st.error(f"🚨 Fake Job ({round(prob*100,2)}%)")
+                    else:
+                        st.success(f"✅ Real Job ({round(prob*100,2)}%)")
+
+                    st.progress(int(prob*100))
+                    st.info("🔍 Reason: Suspicious keywords found")
+
+                    st.session_state.history.append(("TEXT", desc[:50], pred))
+
+        # COMBINED
+        with tab3:
+            url = st.text_input("URL (optional)")
+            desc = st.text_area("Description (optional)")
+
+            if st.button("Analyze Both"):
+                with st.spinner("Analyzing..."):
+                    time.sleep(2)
+
+                    results = []
+                    probs = []
+
+                    if url:
+                        vec = url_vectorizer.transform([url])
+                        pred = url_model.predict(vec)[0]
+                        prob = url_model.predict_proba(vec)[0].max()
+                        results.append(pred)
+                        probs.append(prob)
+
+                    if desc:
+                        vec = text_vectorizer.transform([desc])
+                        pred = text_model.predict(vec)[0]
+                        prob = text_model.predict_proba(vec)[0].max()
+                        results.append(pred)
+                        probs.append(prob)
+
+                    final = max(results)
+                    confidence = round(max(probs)*100, 2)
+
+                    if final == 1:
+                        st.error(f"🚨 FAKE JOB ({confidence}%)")
+                    else:
+                        st.success(f"✅ REAL JOB ({confidence}%)")
+
+                    st.progress(int(confidence))
+                    st.info("🔍 AI Decision based on patterns")
+
+                    st.session_state.history.append(("COMBINED", "Check", final))
+
+    # ===============================
+    # HISTORY
+    # ===============================
+    elif menu == "History":
+        st.title("📜 History")
+
+        if st.session_state.history:
+            df = pd.DataFrame(st.session_state.history, columns=["Type", "Input", "Result"])
+            st.dataframe(df)
+        else:
+            st.info("No history available")
+
+    # ===============================
+    # ANALYTICS (CHART)
+    # ===============================
+    elif menu == "Analytics":
+        st.title("📊 Analytics")
+
+        if st.session_state.history:
+            results = [x[2] for x in st.session_state.history]
+
+            labels = ["Real", "Fake"]
+            values = [results.count(0), results.count(1)]
+
+            plt.figure()
+            plt.bar(labels, values)
+            st.pyplot(plt)
+        else:
+            st.info("No data to analyze")
+
+    # ===============================
+    # LOGOUT
+    # ===============================
+    elif menu == "Logout":
+        st.session_state.logged_in = False
+        st.rerun()
