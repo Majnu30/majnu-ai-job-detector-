@@ -24,7 +24,7 @@ lottie_ai = load_lottie("https://assets2.lottiefiles.com/packages/lf20_jcikwtux.
 # ===============================
 # PAGE CONFIG
 # ===============================
-st.set_page_config(page_title="Majnu AI Legend", layout="wide")
+st.set_page_config(page_title=" AI JOB DETECTOR", layout="wide")
 
 # ===============================
 # PREMIUM CSS (GLASS UI)
@@ -57,7 +57,7 @@ st.markdown("""
 col1, col2 = st.columns([2,1])
 
 with col1:
-    st.title("👑 Majnu AI Legend System")
+    st.title(" AI JOB DETECTOR")
     st.caption("Next-gen Fake Job Detection with AI Intelligence")
 
 with col2:
