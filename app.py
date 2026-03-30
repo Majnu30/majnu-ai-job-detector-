@@ -1,6 +1,8 @@
 import streamlit as st
 import pickle
 import time
+import re
+import pandas as pd
 
 # ===============================
 # LOAD MODELS
@@ -11,168 +13,149 @@ text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
 # ===============================
-# PAGE CONFIG
-# ===============================
-st.set_page_config(page_title="Majnu AI Job Detector", page_icon="🤖", layout="wide")
-
-# ===============================
-# SIDEBAR
-# ===============================
-st.sidebar.title("🤖 Majnu AI")
-menu = st.sidebar.radio("Navigation", ["Home", "History", "About"])
-
-# ===============================
-# CUSTOM CSS
-# ===============================
-st.markdown("""
-<style>
-.stApp {
-    background: linear-gradient(135deg, #141E30, #243B55);
-    color: white;
-}
-.result {
-    padding: 20px;
-    border-radius: 12px;
-    text-align: center;
-    font-size: 22px;
-    font-weight: bold;
-}
-</style>
-""", unsafe_allow_html=True)
-
-# ===============================
-# SESSION STATE (HISTORY)
+# SESSION
 # ===============================
 if "history" not in st.session_state:
     st.session_state.history = []
 
 # ===============================
-# HOME PAGE
+# PAGE CONFIG
 # ===============================
-if menu == "Home":
-
-    st.title("🚀 AI Fake Job Detection System")
-    st.caption("Detect Fake Jobs using AI (URL + Description)")
-
-    tab1, tab2, tab3 = st.tabs(["🔗 URL Check", "📝 Description Check", "⚡ Combined Check"])
-
-    # -----------------------------
-    # URL TAB
-    # -----------------------------
-    with tab1:
-        url = st.text_input("Enter Job URL")
-
-        if st.button("Check URL"):
-            with st.spinner("Analyzing URL..."):
-                time.sleep(1.5)
-                vec = url_vectorizer.transform([url])
-                pred = url_model.predict(vec)[0]
-                prob = url_model.predict_proba(vec)[0].max()
-
-                if pred == 1:
-                    st.error(f"🚨 Fake URL ({round(prob*100,2)}%)")
-                else:
-                    st.success(f"✅ Safe URL ({round(prob*100,2)}%)")
-
-                st.progress(int(prob*100))
-
-                st.session_state.history.append(("URL", url, pred))
-
-    # -----------------------------
-    # TEXT TAB
-    # -----------------------------
-    with tab2:
-        desc = st.text_area("Enter Job Description")
-
-        if st.button("Check Description"):
-            with st.spinner("Analyzing Description..."):
-                time.sleep(1.5)
-                vec = text_vectorizer.transform([desc])
-                pred = text_model.predict(vec)[0]
-                prob = text_model.predict_proba(vec)[0].max()
-
-                if pred == 1:
-                    st.error(f"🚨 Fake Job ({round(prob*100,2)}%)")
-                else:
-                    st.success(f"✅ Real Job ({round(prob*100,2)}%)")
-
-                st.progress(int(prob*100))
-
-                st.session_state.history.append(("TEXT", desc[:50], pred))
-
-    # -----------------------------
-    # COMBINED TAB
-    # -----------------------------
-    with tab3:
-        url = st.text_input("Enter URL (optional)")
-        desc = st.text_area("Enter Description (optional)")
-
-        if st.button("Analyze Both"):
-            with st.spinner("Analyzing..."):
-                time.sleep(2)
-
-                results = []
-                probs = []
-
-                if url:
-                    vec = url_vectorizer.transform([url])
-                    pred = url_model.predict(vec)[0]
-                    prob = url_model.predict_proba(vec)[0].max()
-                    results.append(pred)
-                    probs.append(prob)
-
-                if desc:
-                    vec = text_vectorizer.transform([desc])
-                    pred = text_model.predict(vec)[0]
-                    prob = text_model.predict_proba(vec)[0].max()
-                    results.append(pred)
-                    probs.append(prob)
-
-                final = max(results)
-                confidence = round(max(probs)*100, 2)
-
-                if final == 1:
-                    st.error(f"🚨 FAKE JOB DETECTED ({confidence}%)")
-                    st.info("⚠️ Reason: Suspicious keywords / malicious URL patterns")
-                else:
-                    st.success(f"✅ REAL JOB ({confidence}%)")
-                    st.info("✔️ Looks safe based on trained patterns")
-
-                st.progress(int(confidence))
-
-                st.session_state.history.append(("COMBINED", "Check", final))
+st.set_page_config(page_title="God Level AI Job Detector", layout="wide")
 
 # ===============================
-# HISTORY PAGE
+# HEADER
 # ===============================
-elif menu == "History":
+st.title("👑 GOD LEVEL AI JOB DETECTOR")
+st.caption("Advanced AI System with Explainability & Smart Risk Score")
 
-    st.title("📊 Prediction History")
+# ===============================
+# INPUT SECTION
+# ===============================
+col1, col2 = st.columns(2)
 
-    if st.session_state.history:
-        for item in st.session_state.history:
-            st.write(item)
+with col1:
+    url = st.text_input("🔗 Enter Job URL")
+
+with col2:
+    file = st.file_uploader("📄 Upload Job PDF", type=["txt", "pdf"])
+
+desc = st.text_area("📝 Enter Job Description")
+
+# ===============================
+# KEYWORD LIST (AI EXPLANATION)
+# ===============================
+suspicious_words = [
+    "urgent hiring", "work from home", "no experience",
+    "quick money", "easy job", "free registration"
+]
+
+def highlight_keywords(text):
+    found = []
+    for word in suspicious_words:
+        if word in text.lower():
+            found.append(word)
+    return found
+
+# ===============================
+# ANALYZE BUTTON
+# ===============================
+if st.button("🚀 Analyze Job"):
+
+    with st.spinner("🤖 AI is thinking..."):
+        time.sleep(2)
+
+        results = []
+        probs = []
+
+        # URL MODEL
+        if url:
+            vec = url_vectorizer.transform([url])
+            pred = url_model.predict(vec)[0]
+            prob = url_model.predict_proba(vec)[0].max()
+            results.append(pred)
+            probs.append(prob)
+
+        # TEXT MODEL
+        if desc:
+            vec = text_vectorizer.transform([desc])
+            pred = text_model.predict(vec)[0]
+            prob = text_model.predict_proba(vec)[0].max()
+            results.append(pred)
+            probs.append(prob)
+
+        if results:
+            final = max(results)
+            confidence = round(max(probs)*100, 2)
+        else:
+            st.warning("Please provide input")
+            st.stop()
+
+        # ===============================
+        # SMART RISK SCORE
+        # ===============================
+        risk_score = confidence if final == 1 else 100 - confidence
+
+        # ===============================
+        # RESULT DISPLAY
+        # ===============================
+        if final == 1:
+            st.error(f"🚨 FAKE JOB DETECTED")
+        else:
+            st.success(f"✅ REAL JOB")
+
+        st.metric("Confidence", f"{confidence}%")
+        st.metric("Risk Score", f"{risk_score}%")
+
+        # ===============================
+        # KEYWORD HIGHLIGHT
+        # ===============================
+        keywords = highlight_keywords(desc)
+
+        if keywords:
+            st.warning(f"⚠️ Suspicious Keywords Found: {', '.join(keywords)}")
+        else:
+            st.info("No suspicious keywords detected")
+
+        # ===============================
+        # AI EXPLANATION
+        # ===============================
+        if final == 1:
+            explanation = "This job looks suspicious due to risky patterns and keywords."
+        else:
+            explanation = "This job appears safe based on trained data patterns."
+
+        st.info(f"🧠 AI Explanation: {explanation}")
+
+        # ===============================
+        # SAVE HISTORY
+        # ===============================
+        st.session_state.history.append({
+            "URL": url,
+            "Result": "Fake" if final else "Real",
+            "Confidence": confidence
+        })
+
+# ===============================
+# HISTORY TABLE
+# ===============================
+st.subheader("📊 History")
+
+if st.session_state.history:
+    df = pd.DataFrame(st.session_state.history)
+    st.dataframe(df)
+else:
+    st.info("No history yet")
+
+# ===============================
+# AI CHAT ASSISTANT
+# ===============================
+st.subheader("🤖 Ask AI")
+
+question = st.text_input("Ask something about job scams")
+
+if question:
+    if "fake job" in question.lower():
+        st.write("Fake jobs often ask for money, personal info, or unrealistic offers.")
     else:
-        st.info("No history yet")
-
-# ===============================
-# ABOUT PAGE
-# ===============================
-elif menu == "About":
-
-    st.title("📌 About Project")
-
-    st.write("""
-    This project uses Machine Learning to detect fake job postings.
-    
-    Models used:
-    - Logistic Regression
-    - Random Forest
-    
-    Features:
-    - URL Analysis
-    - Job Description Analysis
-    - Real-time Prediction
-    
-    Developed by ❤️ Majnu and Team
-    """)
+        st.write("AI Assistant: Please ask about job detection.")
