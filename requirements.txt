@@ -2,3 +2,9 @@ streamlit
 scikit-learn
 pandas
 numpy
+matplotlib
+seaborn
+streamlit-lottie
+requests
+beautifulsoup4
+reportlab
