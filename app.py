@@ -14,7 +14,7 @@ url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 # PAGE CONFIG
 # ===============================
 st.set_page_config(
-    page_title="Majnu AI Job Detector",
+    page_title=" AI Job Detector",
     page_icon="🤖",
     layout="centered"
 )
