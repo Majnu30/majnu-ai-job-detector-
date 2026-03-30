@@ -1,89 +1,147 @@
 import streamlit as st
 import pickle
-from urllib.parse import urlparse
+import time
 
-trusted_domains = [
-    "tcs.com",
-    "infosys.com",
-    "wipro.com",
-    "amazon.jobs",
-    "google.com",
-    "linkedin.com",
-    "naukri.com",
-    "internshala.com"
-]
-
-def is_trusted(url):
-    domain = urlparse(url).netloc.lower()
-    for trusted in trusted_domains:
-        if trusted in domain:
-            return True
-    return False
-
-# Load models
+# ===============================
+# LOAD MODELS
+# ===============================
 text_model = pickle.load(open("text_model.pkl", "rb"))
-text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
-
 url_model = pickle.load(open("url_model.pkl", "rb"))
+text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
-# Page config
-st.set_page_config(page_title="AI Fake Job Detector", page_icon="🤖", layout="centered")
+# ===============================
+# PAGE CONFIG
+# ===============================
+st.set_page_config(
+    page_title="Majnu AI Job Detector",
+    page_icon="🤖",
+    layout="centered"
+)
 
-# Title
-st.markdown("<h1 style='text-align:center;'>🤖 AI Fake Job Detection System</h1>", unsafe_allow_html=True)
-st.markdown("<p style='text-align:center;'>Detect fake job postings using Machine Learning</p>", unsafe_allow_html=True)
+# ===============================
+# CUSTOM CSS (GRADIENT + MOBILE)
+# ===============================
+st.markdown("""
+<style>
 
-st.markdown("---")
+.stApp {
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: white;
+}
 
-# URL Input
-st.subheader("🔗 Job URL")
-job_url = st.text_input("Paste the job website link")
+/* Title */
+.title {
+    text-align: center;
+    font-size: 42px;
+    font-weight: bold;
+    color: #00e5ff;
+}
 
-# Description Input
-st.subheader("📝 Job Description")
-job_desc = st.text_area("Paste the job description here")
+/* Subtitle */
+.subtitle {
+    text-align: center;
+    font-size: 18px;
+    color: #d1d1d1;
+    margin-bottom: 20px;
+}
 
-st.markdown("---")
+/* Card UI */
+.card {
+    background: rgba(255,255,255,0.05);
+    padding: 20px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+}
 
-# Single Button
-if st.button("🚀 Check Job Authenticity"):
+/* Result box */
+.result {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+}
 
-    if job_url.strip() == "" and job_desc.strip() == "":
-        st.warning("Please enter a Job URL or Job Description.")
+/* Footer */
+.footer {
+    text-align: center;
+    margin-top: 40px;
+    color: #aaaaaa;
+    font-size: 14px;
+}
+
+</style>
+""", unsafe_allow_html=True)
+
+# ===============================
+# LOGO + HEADER
+# ===============================
+st.markdown('<div class="title">🤖 Majnu AI Job Detector</div>', unsafe_allow_html=True)
+st.markdown('<div class="subtitle">Smart AI to Detect Fake Job Posts Instantly</div>', unsafe_allow_html=True)
+
+# ===============================
+# INPUT SECTION
+# ===============================
+st.markdown('<div class="card">', unsafe_allow_html=True)
+
+url_input = st.text_input("🔗 Enter Job URL")
+desc_input = st.text_area("📝 Enter Job Description")
+
+st.markdown('</div>', unsafe_allow_html=True)
+
+# ===============================
+# BUTTON
+# ===============================
+if st.button("🚀 Analyze Job", use_container_width=True):
+
+    if url_input == "" and desc_input == "":
+        st.warning("⚠️ Please enter URL or Description")
+
     else:
+        with st.spinner("🔍 Analyzing... Please wait"):
+            time.sleep(2)  # Loading animation
 
-        st.subheader("🔍 Analysis Result")
+            results = []
+            confidences = []
 
-        # URL prediction
-        if job_url.strip() != "":
-            if is_trusted(job_url):
-                st.success("✅ Legitimate Job Website (Trusted Domain)")
-    
-            else:
-                url_data = url_vectorizer.transform([job_url])
-                url_pred = url_model.predict(url_data)
+            # URL Prediction
+            if url_input:
+                url_vec = url_vectorizer.transform([url_input])
+                url_pred = url_model.predict(url_vec)[0]
+                url_prob = url_model.predict_proba(url_vec)[0].max()
+                results.append(url_pred)
+                confidences.append(url_prob)
 
-                if url_pred[0] == 1:
-                    st.error("⚠ Suspicious / Fake Job URL")
-                else:
-                    st.success("✅ Job URL looks Safe")
-            
+            # TEXT Prediction
+            if desc_input:
+                text_vec = text_vectorizer.transform([desc_input])
+                text_pred = text_model.predict(text_vec)[0]
+                text_prob = text_model.predict_proba(text_vec)[0].max()
+                results.append(text_pred)
+                confidences.append(text_prob)
 
-        # Description prediction
-        if job_desc.strip() != "":
-            desc_data = text_vectorizer.transform([job_desc])
-            desc_pred = text_model.predict(desc_data)
+            final_result = max(results)
+            confidence = round(max(confidences) * 100, 2)
 
-            if desc_pred[0] == 1:
-                st.error("⚠ Fake Job Description")
-            else:
-                st.success("✅ Job Description looks Real")
+        # ===============================
+        # OUTPUT
+        # ===============================
+        if final_result == 1:
+            st.markdown(
+                f'<div class="result" style="background:#ff4b4b;">🚨 FAKE JOB DETECTED<br>Confidence: {confidence}%</div>',
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                f'<div class="result" style="background:#00c853;">✅ REAL JOB<br>Confidence: {confidence}%</div>',
+                unsafe_allow_html=True
+            )
 
-st.markdown("---")
-
-# Footer
+# ===============================
+# FOOTER
+# ===============================
 st.markdown(
-    "<p style='text-align:center;'>Developed by Batch 11</b></p>",
+    '<div class="footer">Developed by batch 11 Team</div>',
     unsafe_allow_html=True
 )
