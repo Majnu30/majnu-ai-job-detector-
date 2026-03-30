@@ -1,13 +1,6 @@
 import streamlit as st
 import pickle
 import time
-import pandas as pd
-import matplotlib.pyplot as plt
-
-# ===============================
-# PAGE CONFIG
-# ===============================
-st.set_page_config(page_title="Majnu AI Job Detector", layout="wide")
 
 # ===============================
 # LOAD MODELS
@@ -18,177 +11,168 @@ text_vectorizer = pickle.load(open("text_vectorizer.pkl", "rb"))
 url_vectorizer = pickle.load(open("url_vectorizer.pkl", "rb"))
 
 # ===============================
-# SESSION STATE
+# PAGE CONFIG
 # ===============================
-if "logged_in" not in st.session_state:
-    st.session_state.logged_in = False
+st.set_page_config(page_title="Majnu AI Job Detector", page_icon="🤖", layout="wide")
 
+# ===============================
+# SIDEBAR
+# ===============================
+st.sidebar.title("🤖 Majnu AI")
+menu = st.sidebar.radio("Navigation", ["Home", "History", "About"])
+
+# ===============================
+# CUSTOM CSS
+# ===============================
+st.markdown("""
+<style>
+.stApp {
+    background: linear-gradient(135deg, #141E30, #243B55);
+    color: white;
+}
+.result {
+    padding: 20px;
+    border-radius: 12px;
+    text-align: center;
+    font-size: 22px;
+    font-weight: bold;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ===============================
+# SESSION STATE (HISTORY)
+# ===============================
 if "history" not in st.session_state:
     st.session_state.history = []
 
 # ===============================
-# LOGIN PAGE
+# HOME PAGE
 # ===============================
-if not st.session_state.logged_in:
-    st.title("🔐 Login - Majnu AI")
+if menu == "Home":
 
-    username = st.text_input("Username")
-    password = st.text_input("Password", type="password")
+    st.title("🚀 AI Fake Job Detection System")
+    st.caption("Detect Fake Jobs using AI (URL + Description)")
 
-    if st.button("Login"):
-        if username == "majnu" and password == "1234":
-            st.session_state.logged_in = True
-            st.success("Login Successful")
-            st.rerun()
-        else:
-            st.error("Invalid Credentials")
+    tab1, tab2, tab3 = st.tabs(["🔗 URL Check", "📝 Description Check", "⚡ Combined Check"])
 
-# ===============================
-# MAIN APP
-# ===============================
-else:
+    # -----------------------------
+    # URL TAB
+    # -----------------------------
+    with tab1:
+        url = st.text_input("Enter Job URL")
 
-    # SIDEBAR
-    st.sidebar.title("🤖 Majnu AI")
-    menu = st.sidebar.radio("Menu", ["Dashboard", "Analyzer", "History", "Analytics", "Logout"])
+        if st.button("Check URL"):
+            with st.spinner("Analyzing URL..."):
+                time.sleep(1.5)
+                vec = url_vectorizer.transform([url])
+                pred = url_model.predict(vec)[0]
+                prob = url_model.predict_proba(vec)[0].max()
 
-    # ===============================
-    # DASHBOARD
-    # ===============================
-    if menu == "Dashboard":
-        st.title("📊 Dashboard")
+                if pred == 1:
+                    st.error(f"🚨 Fake URL ({round(prob*100,2)}%)")
+                else:
+                    st.success(f"✅ Safe URL ({round(prob*100,2)}%)")
 
-        col1, col2, col3 = st.columns(3)
+                st.progress(int(prob*100))
 
-        col1.metric("Total Checks", len(st.session_state.history))
-        col2.metric("Fake Detected", sum(1 for x in st.session_state.history if x[2] == 1))
-        col3.metric("Real Jobs", sum(1 for x in st.session_state.history if x[2] == 0))
+                st.session_state.history.append(("URL", url, pred))
 
-    # ===============================
-    # ANALYZER
-    # ===============================
-    elif menu == "Analyzer":
+    # -----------------------------
+    # TEXT TAB
+    # -----------------------------
+    with tab2:
+        desc = st.text_area("Enter Job Description")
 
-        st.title("🚀 AI Job Analyzer")
+        if st.button("Check Description"):
+            with st.spinner("Analyzing Description..."):
+                time.sleep(1.5)
+                vec = text_vectorizer.transform([desc])
+                pred = text_model.predict(vec)[0]
+                prob = text_model.predict_proba(vec)[0].max()
 
-        tab1, tab2, tab3 = st.tabs(["🔗 URL", "📝 Description", "⚡ Combined"])
+                if pred == 1:
+                    st.error(f"🚨 Fake Job ({round(prob*100,2)}%)")
+                else:
+                    st.success(f"✅ Real Job ({round(prob*100,2)}%)")
 
-        # URL
-        with tab1:
-            url = st.text_input("Enter URL")
+                st.progress(int(prob*100))
 
-            if st.button("Check URL"):
-                with st.spinner("Analyzing..."):
-                    time.sleep(1.5)
+                st.session_state.history.append(("TEXT", desc[:50], pred))
 
+    # -----------------------------
+    # COMBINED TAB
+    # -----------------------------
+    with tab3:
+        url = st.text_input("Enter URL (optional)")
+        desc = st.text_area("Enter Description (optional)")
+
+        if st.button("Analyze Both"):
+            with st.spinner("Analyzing..."):
+                time.sleep(2)
+
+                results = []
+                probs = []
+
+                if url:
                     vec = url_vectorizer.transform([url])
                     pred = url_model.predict(vec)[0]
                     prob = url_model.predict_proba(vec)[0].max()
+                    results.append(pred)
+                    probs.append(prob)
 
-                    if pred == 1:
-                        st.error(f"🚨 Fake URL ({round(prob*100,2)}%)")
-                    else:
-                        st.success(f"✅ Safe URL ({round(prob*100,2)}%)")
-
-                    st.progress(int(prob*100))
-                    st.info("🔍 Reason: Suspicious patterns detected")
-
-                    st.session_state.history.append(("URL", url, pred))
-
-        # TEXT
-        with tab2:
-            desc = st.text_area("Enter Description")
-
-            if st.button("Check Description"):
-                with st.spinner("Analyzing..."):
-                    time.sleep(1.5)
-
+                if desc:
                     vec = text_vectorizer.transform([desc])
                     pred = text_model.predict(vec)[0]
                     prob = text_model.predict_proba(vec)[0].max()
+                    results.append(pred)
+                    probs.append(prob)
 
-                    if pred == 1:
-                        st.error(f"🚨 Fake Job ({round(prob*100,2)}%)")
-                    else:
-                        st.success(f"✅ Real Job ({round(prob*100,2)}%)")
+                final = max(results)
+                confidence = round(max(probs)*100, 2)
 
-                    st.progress(int(prob*100))
-                    st.info("🔍 Reason: Suspicious keywords found")
+                if final == 1:
+                    st.error(f"🚨 FAKE JOB DETECTED ({confidence}%)")
+                    st.info("⚠️ Reason: Suspicious keywords / malicious URL patterns")
+                else:
+                    st.success(f"✅ REAL JOB ({confidence}%)")
+                    st.info("✔️ Looks safe based on trained patterns")
 
-                    st.session_state.history.append(("TEXT", desc[:50], pred))
+                st.progress(int(confidence))
 
-        # COMBINED
-        with tab3:
-            url = st.text_input("URL (optional)")
-            desc = st.text_area("Description (optional)")
+                st.session_state.history.append(("COMBINED", "Check", final))
 
-            if st.button("Analyze Both"):
-                with st.spinner("Analyzing..."):
-                    time.sleep(2)
+# ===============================
+# HISTORY PAGE
+# ===============================
+elif menu == "History":
 
-                    results = []
-                    probs = []
+    st.title("📊 Prediction History")
 
-                    if url:
-                        vec = url_vectorizer.transform([url])
-                        pred = url_model.predict(vec)[0]
-                        prob = url_model.predict_proba(vec)[0].max()
-                        results.append(pred)
-                        probs.append(prob)
+    if st.session_state.history:
+        for item in st.session_state.history:
+            st.write(item)
+    else:
+        st.info("No history yet")
 
-                    if desc:
-                        vec = text_vectorizer.transform([desc])
-                        pred = text_model.predict(vec)[0]
-                        prob = text_model.predict_proba(vec)[0].max()
-                        results.append(pred)
-                        probs.append(prob)
+# ===============================
+# ABOUT PAGE
+# ===============================
+elif menu == "About":
 
-                    final = max(results)
-                    confidence = round(max(probs)*100, 2)
+    st.title("📌 About Project")
 
-                    if final == 1:
-                        st.error(f"🚨 FAKE JOB ({confidence}%)")
-                    else:
-                        st.success(f"✅ REAL JOB ({confidence}%)")
-
-                    st.progress(int(confidence))
-                    st.info("🔍 AI Decision based on patterns")
-
-                    st.session_state.history.append(("COMBINED", "Check", final))
-
-    # ===============================
-    # HISTORY
-    # ===============================
-    elif menu == "History":
-        st.title("📜 History")
-
-        if st.session_state.history:
-            df = pd.DataFrame(st.session_state.history, columns=["Type", "Input", "Result"])
-            st.dataframe(df)
-        else:
-            st.info("No history available")
-
-    # ===============================
-    # ANALYTICS (CHART)
-    # ===============================
-    elif menu == "Analytics":
-        st.title("📊 Analytics")
-
-        if st.session_state.history:
-            results = [x[2] for x in st.session_state.history]
-
-            labels = ["Real", "Fake"]
-            values = [results.count(0), results.count(1)]
-
-            plt.figure()
-            plt.bar(labels, values)
-            st.pyplot(plt)
-        else:
-            st.info("No data to analyze")
-
-    # ===============================
-    # LOGOUT
-    # ===============================
-    elif menu == "Logout":
-        st.session_state.logged_in = False
-        st.rerun()
+    st.write("""
+    This project uses Machine Learning to detect fake job postings.
+    
+    Models used:
+    - Logistic Regression
+    - Random Forest
+    
+    Features:
+    - URL Analysis
+    - Job Description Analysis
+    - Real-time Prediction
+    
+    Developed by ❤️ Majnu and Team
+    """)
